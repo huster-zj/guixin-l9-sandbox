@@ -168,7 +168,7 @@
 difficulty_score = Σ(atom_activation * atom_weight) * experience_factor
 experience_factor = min(1.0, total_years / 5)
 
-if difficulty_score > 0.8: difficulty_level = "L9"
-if difficulty_score 0.6-0.8: difficulty_level = "L8"
-if difficulty_score < 0.6: difficulty_level = "L7"
+if difficulty_score > 0.8:            difficulty_level = "L9"
+if 0.6 <= difficulty_score <= 0.8:    difficulty_level = "L8"
+if difficulty_score < 0.6:            difficulty_level = "L7"
 ```

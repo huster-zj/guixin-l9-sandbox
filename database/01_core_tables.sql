@@ -74,7 +74,7 @@ CREATE TABLE role_schemas (
 
     -- 核心考核维度（最多6个）
     target_atoms INTEGER[] NOT NULL,                 -- 如: {42, 145, 203, 301, 405, 512}
-    atom_weights NUMERIC(6,5)[],                     -- 各维度权重，和=1
+    atom_weights NUMERIC(8,5)[],                     -- 各维度权重，和=1（整数部分最多3位，避免溢出）
 
     description TEXT,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'deprecated')),
@@ -109,7 +109,7 @@ FOR EACH ROW EXECUTE FUNCTION check_role_atoms();
 
 CREATE TABLE candidates_v2 (
     candidate_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL UNIQUE,                    -- 关联 auth.users
+    user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,  -- 关联 auth.users，级联删除
 
     -- 基础信息（脱敏）
     real_name_hash VARCHAR(64),                      -- 姓名哈希，非明文

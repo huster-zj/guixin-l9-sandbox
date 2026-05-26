@@ -154,7 +154,7 @@ ON search_candidate_scores(session_id, final_rank)
 WHERE final_rank <= 50;
 
 CREATE INDEX idx_scs_candidate
-ON search_candidate_scores(candidate_id, created_at);
+ON search_candidate_scores(candidate_id);
 
 -- =============================================================================
 -- 4. 搜索日志表（审计与优化）

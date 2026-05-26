@@ -124,11 +124,13 @@ class CircuitBreaker:
         self.failure_count = 0
         self.success_count = 0
         self.last_failure_time: Optional[datetime] = None
-        self._lock = asyncio.Lock()
+        # 修复死锁：使用独立锁保护状态读写，不在持有锁时调用业务函数
+        self._state_lock = asyncio.Lock()
 
     async def call(self, func: Callable, *args, **kwargs) -> Any:
         """执行受熔断保护的调用"""
-        async with self._lock:
+        # 检查状态（持有锁的时间尽量短）
+        async with self._state_lock:
             if self.state == self.State.OPEN:
                 if self._should_attempt_reset():
                     self.state = self.State.HALF_OPEN
@@ -136,16 +138,17 @@ class CircuitBreaker:
                 else:
                     raise CircuitBreakerOpenError("熔断器打开，拒绝调用")
 
-            try:
-                result = await func(*args, **kwargs)
-                await self._on_success()
-                return result
-            except Exception as e:
-                await self._on_failure()
-                raise e
+        # 在锁外执行业务函数，避免死锁
+        try:
+            result = await func(*args, **kwargs)
+            await self._on_success()
+            return result
+        except Exception as e:
+            await self._on_failure()
+            raise e
 
     async def _on_success(self):
-        async with self._lock:
+        async with self._state_lock:
             if self.state == self.State.HALF_OPEN:
                 self.success_count += 1
                 if self.success_count >= self.config.half_open_max_calls:
@@ -155,7 +158,7 @@ class CircuitBreaker:
                 self.failure_count = 0
 
     async def _on_failure(self):
-        async with self._lock:
+        async with self._state_lock:
             self.failure_count += 1
             self.last_failure_time = datetime.utcnow()
 
@@ -385,7 +388,7 @@ class BattlefieldStateMachine(AgentStateMachine):
         }
 
 
-class X-RAGStateMachine(AgentStateMachine):
+class XRAGStateMachine(AgentStateMachine):
     """X-RAG Agent 状态机"""
 
     DEBOUNCE_SECONDS = 10  # 防抖间隔
@@ -577,7 +580,7 @@ class L9Orchestrator:
         self.agents: Dict[AgentType, AgentStateMachine] = {
             AgentType.INGESTION: IngestionStateMachine(),
             AgentType.BATTLEFIELD: BattlefieldStateMachine(),
-            AgentType.XRAG: X-RAGStateMachine(),
+            AgentType.XRAG: XRAGStateMachine(),
             AgentType.ORACLE: OracleStateMachine()
         }
         self.state_persistence: Dict[str, List[StateTransition]] = {}
@@ -613,8 +616,36 @@ class L9Orchestrator:
         blueprint = await self.agents[AgentType.BATTLEFIELD].execute(battlefield_task)
         results["stages"]["battlefield"] = blueprint
 
-        # Stage 3: Combat (简化模拟)
-        results["stages"]["combat"] = {"status": "completed", "missions": 2}
+        # Stage 3: Combat + X-RAG 实时对抗
+        # 模拟候选人完成第一个任务触发 Checkpoint
+        xrag_task = AgentTask(
+            task_id=str(uuid.uuid4()),
+            agent_type=AgentType.XRAG,
+            assessment_id=assessment_id,
+            payload={
+                "trigger_event": {
+                    "type": "test_passed",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "checkpoint_id": "M1-implementation-complete"
+                },
+                "candidate_context": {
+                    "session_id": assessment_id,
+                    "current_mission": "M1",
+                    "code_snapshot": "// candidate code snapshot",
+                    "diff_since_last": "+ func handleLock() { ... }",
+                    "execution_log": "PASS: TestConcurrentAccess",
+                    "time_spent_minutes": 18
+                },
+                "battlefield_context": blueprint
+            },
+            timeout_seconds=10
+        )
+        xrag_result = await self.agents[AgentType.XRAG].execute(xrag_task)
+        results["stages"]["combat"] = {
+            "status": "completed",
+            "missions": 2,
+            "xrag_injection": xrag_result
+        }
 
         # Stage 4: Oracle Judge
         oracle_task = AgentTask(
