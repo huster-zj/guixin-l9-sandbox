@@ -1,0 +1,30 @@
+# Core Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# Data Validation
+email-validator>=2.1.0
+
+# Async Support
+asyncio>=3.4.3
+aiohttp>=3.9.0
+
+# Type Extensions
+typing-extensions>=4.8.0
+
+# For Mock Data Generation
+faker>=20.0.0
+numpy>=1.26.0
+
+# Utilities
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+
+# Dev & Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx>=0.25.0
+
+# Documentation (optional)
+mkdocs>=1.5.0

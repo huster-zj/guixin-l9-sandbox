@@ -1,0 +1,363 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://heartcert.io/schemas/l9-report-v1.json",
+  "title": "归心 L9 极客认证报告",
+  "description": "候选人通过L9动态沙盒考核后的标准化输出报告",
+  "type": "object",
+  "required": [
+    "report_version",
+    "report_id",
+    "generated_at",
+    "candidate",
+    "assessment",
+    "capability_vector",
+    "combat_record",
+    "verified_skills",
+    "authenticity"
+  ],
+  "properties": {
+    "report_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "报告版本号"
+    },
+    "report_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "报告唯一标识"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "报告生成时间（ISO8601）"
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["candidate_id", "anonymous_profile"],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "候选人唯一标识"
+        },
+        "anonymous_profile": {
+          "type": "object",
+          "description": "脱敏后的候选人画像",
+          "properties": {
+            "years_of_experience": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 50
+            },
+            "education_level": {
+              "type": "string",
+              "enum": ["high_school", "associate", "bachelor", "master", "phd"]
+            },
+            "primary_domains": {
+              "type": "array",
+              "items": {"type": "string"},
+              "maxItems": 3
+            }
+          }
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "required": [
+        "assessment_id",
+        "job_certification",
+        "assessed_at",
+        "duration_minutes",
+        "overall_score",
+        "confidence"
+      ],
+      "properties": {
+        "assessment_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "job_certification": {
+          "type": "object",
+          "properties": {
+            "cert_id": {"type": "string"},
+            "title": {"type": "string"},
+            "level": {
+              "type": "string",
+              "enum": ["L6", "L7", "L8", "L9"]
+            }
+          }
+        },
+        "assessed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "overall_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "总体考核得分 0.0-1.0"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "评分置信度 0.0-1.0"
+        }
+      }
+    },
+    "capability_vector": {
+      "type": "object",
+      "description": "三层能力向量资产",
+      "required": ["vec_1024", "vec_128", "vec_32", "target_atoms_scored"],
+      "properties": {
+        "vec_1024": {
+          "type": "array",
+          "description": "1024维原子能力向量",
+          "minItems": 1024,
+          "maxItems": 1024,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "vec_128": {
+          "type": "array",
+          "description": "128维能力族向量",
+          "minItems": 128,
+          "maxItems": 128,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "vec_32": {
+          "type": "array",
+          "description": "32维宏观能力向量",
+          "minItems": 32,
+          "maxItems": 32,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "vector_hash": {
+          "type": "string",
+          "description": "向量SHA256哈希，用于防篡改校验"
+        },
+        "target_atoms_scored": {
+          "type": "array",
+          "description": "本次考核评分的原子能力详情",
+          "items": {
+            "type": "object",
+            "required": ["atom_id", "atom_name", "score", "rationale", "evidence"],
+            "properties": {
+              "atom_id": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1024
+              },
+              "atom_name": {"type": "string"},
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "rationale": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "评分理由（不超过200字符）"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "评分证据列表"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "radar_chart_data": {
+      "type": "object",
+      "description": "前端雷达图渲染数据",
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "雷达图维度名称"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "description": "各维度得分"
+        },
+        "benchmark": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "description": "同级别候选人平均分"
+        }
+      }
+    },
+    "combat_record": {
+      "type": "object",
+      "description": "战役记录（防伪核心）",
+      "required": ["missions", "xrag_interactions"],
+      "properties": {
+        "framework_name": {
+          "type": "string",
+          "description": "使用的私有框架名称"
+        },
+        "missions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "mission_id": {"type": "string"},
+              "type": {
+                "type": "string",
+                "enum": ["implementation", "debugging", "design", "analysis"]
+              },
+              "title": {"type": "string"},
+              "time_spent_minutes": {"type": "integer"},
+              "result": {
+                "type": "string",
+                "enum": ["success", "partial", "failed"]
+              },
+              "code_snapshot_hash": {
+                "type": "string",
+                "description": "代码快照哈希"
+              }
+            }
+          }
+        },
+        "xrag_interactions": {
+          "type": "array",
+          "description": "X-RAG动态对抗记录",
+          "items": {
+            "type": "object",
+            "properties": {
+              "round": {"type": "integer"},
+              "trigger_point": {"type": "string"},
+              "attack_vector": {"type": "string"},
+              "candidate_response_time_seconds": {"type": "integer"},
+              "evaluation": {
+                "type": "string",
+                "enum": ["excellent", "adequate", "struggled", "failed"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "verified_skills": {
+      "type": "array",
+      "description": "沙盒中验证过的硬技能",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skill": {"type": "string"},
+          "verified_in": {
+            "type": "string",
+            "enum": ["sandbox", "interview", "written"]
+          },
+          "proficiency": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "proficient", "expert"]
+          },
+          "evidence_mission": {"type": "string"}
+        }
+      }
+    },
+    "reranker_payload": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "用于B端重排的150词核心摘要"
+    },
+    "authenticity": {
+      "type": "object",
+      "description": "防伪确权标识",
+      "required": [
+        "certificate_hash",
+        "blockchain_anchor",
+        "verification_url"
+      ],
+      "properties": {
+        "certificate_hash": {
+          "type": "string",
+          "description": "完整报告内容SHA256哈希"
+        },
+        "blockchain_anchor": {
+          "type": "object",
+          "properties": {
+            "network": {
+              "type": "string",
+              "enum": ["ethereum", "polygon", "hyperledger"]
+            },
+            "tx_hash": {"type": "string"},
+            "anchored_at": {"type": "string", "format": "date-time"}
+          }
+        },
+        "verification_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "报告验证链接"
+        },
+        "anti_fingerprint": {
+          "type": "object",
+          "description": "设备/行为指纹（防代考）",
+          "properties": {
+            "device_fingerprint": {"type": "string"},
+            "typing_pattern_hash": {"type": "string"},
+            "trust_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    },
+    "audit_trail": {
+      "type": "object",
+      "description": "审计追踪",
+      "properties": {
+        "judge_model": {"type": "string"},
+        "judge_version": {"type": "string"},
+        "evidence_hash": {"type": "string"},
+        "state_transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "transition_id": {"type": "string"},
+              "from_state": {"type": "string"},
+              "to_state": {"type": "string"},
+              "timestamp": {"type": "string", "format": "date-time"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
